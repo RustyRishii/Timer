@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,6 +27,21 @@ export default function HistoryScreen() {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const handleClearHistory = () => {
+    Alert.alert(
+      'Clear History',
+      'Are you sure you want to clear all timer history? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear', 
+          style: 'destructive', 
+          onPress: () => clearHistory() 
+        }
+      ]
+    );
+  };
+
   const renderHistoryItem = ({ item }: { item: typeof history[0] }) => (
     <ThemedView style={styles.historyItem}>
       <View style={styles.historyItemHeader}>
@@ -45,7 +60,7 @@ export default function HistoryScreen() {
       <ThemedView style={styles.header}>
         <ThemedText type="title">Timer History</ThemedText>
         {history.length > 0 && (
-          <TouchableOpacity style={styles.clearButton} onPress={clearHistory}>
+          <TouchableOpacity style={styles.clearButton} onPress={handleClearHistory}>
             <ThemedText style={styles.clearButtonText}>Clear</ThemedText>
           </TouchableOpacity>
         )}

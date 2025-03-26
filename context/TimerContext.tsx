@@ -74,7 +74,21 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
             // Check if timer just completed
             if (timer.remainingTime > 0 && newRemainingTime === 0) {
               // Timer just completed
-              addTimerToHistory(timer);
+              const historyEntry: TimerHistory = {
+                id: Date.now().toString(),
+                timerId: timer.id,
+                timerName: timer.name,
+                category: timer.category,
+                duration: timer.duration,
+                completedAt: Date.now(),
+              };
+              
+              // Update history state
+              setHistory(prevHistory => {
+                const updatedHistory = [...prevHistory, historyEntry];
+                saveHistory(updatedHistory);
+                return updatedHistory;
+              });
               
               // Show alert
               Alert.alert(

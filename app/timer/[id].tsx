@@ -25,6 +25,7 @@ export default function TimerDetailScreen() {
   const animatedCircle = useAnimatedStyle(() => {
     return {
       transform: [{ rotate: `${progress.value * 360}deg` }],
+      opacity: 1 - progress.value,
     };
   });
 
@@ -54,23 +55,22 @@ export default function TimerDetailScreen() {
 
       return () => clearInterval(interval);
     }
-  }, [timer, isTimerRunning]);
+  }, [timer, isTimerRunning, getTimerById]);
 
   if (!timer) {
-    return (
-      <ThemedView style={styles.container}>
-        <ThemedText>Timer not found</ThemedText>
-      </ThemedView>
-    );
+    return null;
   }
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  // Format seconds to MM:SS
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   const handleToggleTimer = () => {
+    if (!timer) return;
+
     if (isTimerRunning(timer.id)) {
       stopTimer(timer.id);
     } else {
@@ -116,7 +116,8 @@ export default function TimerDetailScreen() {
 
       <View style={styles.timerContainer}>
         <View style={styles.timerCircle}>
-          <Animated.View style={[styles.progressIndicator, animatedCircle]} /><ThemedText style={styles.timerText}>{formatTime(timeLeft)}</ThemedText>
+          <Animated.View style={[styles.progressIndicator, animatedCircle]} />
+          <ThemedText style={styles.timerText}>{formatTime(timeLeft)}</ThemedText>
           <ThemedText style={styles.categoryText}>{timer.category}</ThemedText>
         </View>
 
@@ -181,20 +182,20 @@ const styles = StyleSheet.create({
     width: 250,
     height: 250,
     borderRadius: 125,
-    borderWidth: 8,
-    borderColor: '#ccc',
+    borderWidth: 10,
+    borderColor: '#e0e0e0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   progressIndicator: {
     position: 'absolute',
-    top: -8,
-    left: 115,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.light.tint,
+    top: -10,
+    right: -10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#0a7ea4',
   },
   timerText: {
     fontSize: 48,

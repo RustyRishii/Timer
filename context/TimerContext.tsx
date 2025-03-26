@@ -40,6 +40,7 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
   const [timers, setTimers] = useState<Timer[]>([]);
   const [history, setHistory] = useState<TimerHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [completedTimerIds, setCompletedTimerIds] = useState<Set<string>>(new Set());
 
   // Load timers and history from storage
   useEffect(() => {
@@ -73,29 +74,39 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
             
             // Check if timer just completed
             if (timer.remainingTime > 0 && newRemainingTime === 0) {
-              // Timer just completed
-              const historyEntry: TimerHistory = {
-                id: Date.now().toString(),
-                timerId: timer.id,
-                timerName: timer.name,
-                category: timer.category,
-                duration: timer.duration,
-                completedAt: Date.now(),
-              };
-              
-              // Update history state
-              setHistory(prevHistory => {
-                const updatedHistory = [...prevHistory, historyEntry];
-                saveHistory(updatedHistory);
-                return updatedHistory;
-              });
-              
-              // Show alert
-              Alert.alert(
-                'Timer Completed!',
-                `"${timer.name}" has finished.`,
-                [{ text: 'OK' }]
-              );
+              // Check if we've already shown an alert for this timer completion
+              if (!completedTimerIds.has(timer.id)) {
+                // Add to completed timers set to prevent duplicate alerts
+                setCompletedTimerIds(prev => {
+                  const updated = new Set(prev);
+                  updated.add(timer.id);
+                  return updated;
+                });
+                
+                // Add to history
+                const historyEntry: TimerHistory = {
+                  id: Date.now().toString(),
+                  timerId: timer.id,
+                  timerName: timer.name,
+                  category: timer.category,
+                  duration: timer.duration,
+                  completedAt: Date.now(),
+                };
+                
+                // Update history state
+                setHistory(prevHistory => {
+                  const updatedHistory = [...prevHistory, historyEntry];
+                  saveHistory(updatedHistory);
+                  return updatedHistory;
+                });
+                
+                // Show alert
+                Alert.alert(
+                  'Timer Completed!',
+                  `"${timer.name}" has finished.`,
+                  [{ text: 'OK' }]
+                );
+              }
               
               return {
                 ...timer,
@@ -137,7 +148,16 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [completedTimerIds]);
+
+  // Reset completed timer IDs when a timer is reset
+  const resetCompletedTimerId = (id: string) => {
+    setCompletedTimerIds(prev => {
+      const updated = new Set(prev);
+      updated.delete(id);
+      return updated;
+    });
+  };
 
   const addTimer = (timerData: Omit<Timer, 'id' | 'isActive' | 'isPaused' | 'remainingTime' | 'lastStartedAt' | 'completedAt'>) => {
     const newTimer: Timer = {
@@ -167,6 +187,9 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
   };
 
   const deleteTimer = (id: string) => {
+    // Remove from completed timers set if present
+    resetCompletedTimerId(id);
+    
     setTimers(prevTimers => {
       const updatedTimers = prevTimers.filter(timer => timer.id !== id);
       saveTimers(updatedTimers);
@@ -209,6 +232,9 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
   };
 
   const resetTimer = (id: string) => {
+    // Reset completed status when timer is reset
+    resetCompletedTimerId(id);
+    
     setTimers(prevTimers => {
       const updatedTimers = prevTimers.map(timer => {
         if (timer.id === id) {
@@ -263,7 +289,19 @@ export const TimerProvider: React.FC<TimerProviderProps> = ({ children }) => {
   };
 
   const resetAllTimers = (category: string) => {
+    // Reset completed status for all timers in the category
     setTimers(prevTimers => {
+      const categoryTimerIds = prevTimers
+        .filter(timer => timer.category === category)
+        .map(timer => timer.id);
+      
+      // Remove all category timer IDs from completed set
+      setCompletedTimerIds(prev => {
+        const updated = new Set(prev);
+        categoryTimerIds.forEach(id => updated.delete(id));
+        return updated;
+      });
+      
       const updatedTimers = prevTimers.map(timer => {
         if (timer.category === category) {
           return {
